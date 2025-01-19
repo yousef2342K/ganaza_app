@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ganaza Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Marker Cluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+    /* General Styles */
+    body {
+        font-family: 'Tajawal', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+        color: #333;
+    }
+
+    #map {
+        height: 100vh;
+        width: 100%;
+    }
+
+    /* Post Button */
+    #post-button {
+        position: fixed;
+        top: 20px;
+        right: 20px; /* Move to the right */
+        z-index: 1000;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    #post-button:hover {
+        background: #45a049;
+        transform: translateY(-2px);
+    }
+
+    /* Post Form */
+    #post-form {
+        display: none;
+        position: absolute;
+        top: 80px;
+        right: 20px; /* Move to the right */
+        z-index: 1000;
+        background: white;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 320px;
+    }
+
+    #post-form h3 {
+        margin-top: 0;
+        font-size: 20px;
+        color: #333;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    #post-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #555;
+        font-size: 14px;
+    }
+
+    #post-form input,
+    #post-form select,
+    #post-form textarea {
+        width: 90%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+        background-color: #f9f9f9;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    #post-form input:focus,
+    #post-form select:focus,
+    #post-form textarea:focus {
+        border-color: #4CAF50;
+        outline: none;
+        background-color: #fff;
+    }
+
+    #post-form textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    #post-form button {
+        background: #4CAF50;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        transition: background 0.3s ease;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    #post-form button:hover {
+        background: #45a049;
+    }
+
+    #cancel-button {
+        background: #f44336;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        margin-top: 10px;
+        transition: background 0.3s ease;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    #cancel-button:hover {
+        background: #d32f2f;
+    }
+
+    /* Mosque List */
+    #mosque-list {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        display: none;
+        background-color: #f9f9f9;
+    }
+
+    #mosque-list div {
+        padding: 10px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-size: 14px;
+    }
+
+    #mosque-list div:hover {
+        background: #f0f0f0;
+    }
+
+     /* Custom Alert Box */
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .custom-alert.error {
+            background: #f44336;
+        }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    /* Ganaza Counter */
+    #ganaza-counter {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    #ganaza-counter span {
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    /* Nearby Ganazas Dropdown */
+    #nearby-ganazas-dropdown {
+        position: fixed;
+        top: 20px;
+        left: 20px; /* Move to the left */
+        z-index: 1000;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    #toggle-ganazas-btn {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        margin-left: 30px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s ease;
+    }
+
+    #toggle-ganazas-btn:hover {
+        background: #45a049;
+    }
+
+    #nearby-ganazas-list {
+        background: white;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        width: 300px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 10px;
+        display: none; /* Hidden by default */
+    }
+
+    #nearby-ganazas-list div {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+        transition: background 0.3s ease;
+    }
+
+    #nearby-ganazas-list div:hover {
+        background: #f9f9f9;
+    }
+
+    #nearby-ganazas-list div:last-child {
+        border-bottom: none;
+    }
+
+    /* Footer */
+    footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #4CAF50;
+        color: white;
+        text-align: center;
+        padding: 5px;
+        font-family: 'Tajawal', sans-serif;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+
+    footer p {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    footer strong {
+        font-weight: bold;
+        color: #f0f0f0;
+    }
+</style>
+</head>
+<body>
+        <div id="map"></div>
+        <!-- Nearby Ganazas Dropdown -->
+    <div id="nearby-ganazas-dropdown">
+        <button id="toggle-ganazas-btn">عرض الجنازات القريبة ▼</button>
+        <div id="nearby-ganazas-list" class="ganazas-list-hidden"></div>
+    </div>
+
+    <!-- Post Button -->
+    <button id="post-button">نشر جنازة</button>
+
+    <!-- Ganaza Counter -->
+    <div id="ganaza-counter">عدد الجنازات المجمعة: <span id="ganaza-count">0</span></div>
+
+     <!-- Post Form -->
+    <div id="post-form">
+        <h3>نشر جنازة</h3>
+        <label for="mosque-name">اسم المسجد:</label>
+        <input type="text" id="mosque-name" placeholder="ابحث عن مسجد" required>
+        <div id="mosque-list"></div>
+        <label for="prayer-time">وقت الصلاة:</label>
+        <select id="prayer-time" required>
+            <option value="Fajr">الفجر</option>
+            <option value="Dhuhr">الظهر</option>
+            <option value="Asr">العصر</option>
+            <option value="Maghrib">المغرب</option>
+            <option value="Isha">العشاء</option>
+        </select>
+        <label for="time">الوقت:</label>
+        <select id="time" required>
+            <option value="Today">اليوم <span id="today-date"></span></option>
+            <option value="Tomorrow">غدًا <span id="tomorrow-date"></span></option>
+            <option value="Day after tomorrow">بعد غد <span id="day-after-tomorrow-date"></span></option>
+        </select>
+        <label for="deceased-name">اسم المتوفى:</label>
+        <input type="text" id="deceased-name" placeholder="ادخل اسم المتوفى" required>
+        <label for="message">رسالة (اختياري):</label>
+        <textarea id="message" placeholder="اكتب رسالة"></textarea>
+        <button id="submit-button">إرسال</button>
+        <button id="cancel-button">إلغاء</button>
+    </div>
+    <!-- Custom Alert Box -->
+    <div id="custom-alert" class="custom-alert"></div>
+
+
+    <!-- Footer -->
+    <footer>
+        <p>تم التطوير بواسطة <strong>يوسف خالد</strong>، طالب في قسم علوم الحاسب. جميع الحقوق محفوظة &copy; 2025</p>
+    </footer>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Marker Cluster JavaScript -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script>
+        // Function to show custom alert
+        function showAlert(message, type = 'success') {
+            const alertBox = document.getElementById('custom-alert');
+            alertBox.textContent = message;
+            alertBox.className = `custom-alert ${type === 'error' ? 'error' : ''}`;
+            alertBox.style.display = 'block';
+
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000); // Hide after 3 seconds
+        }
+
+        // Function to calculate distance between two points using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distance in km
+}
+
+        // Initialize the map
+        const map = L.map('map').setView([24.7136, 46.6753], 12);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Create a marker cluster group
+        const markers = L.markerClusterGroup();
+
+        // Function to get the user's location
+        let userLat, userLng;
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
+                        map.setView([userLat, userLng], 13);
+                        const userMarker = L.marker([userLat, userLng]).addTo(map);
+                        userMarker.bindPopup('<b>موقعك الحالي</b>').openPopup();
+                        fetchNearbyMosques(userLat, userLng);
+                    },
+                    (error) => {
+                        console.error('Error getting user location:', error);
+                        map.setView([24.7136, 46.6753], 12);
+                    }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                map.setView([24.7136, 46.6753], 12);
+            }
+        }
+
+       function fetchAllGanazas() {
+    fetch('/get-all-ganazas')
+        .then(response => response.json())
+        .then(data => {
+            markers.clearLayers(); // Clear existing markers
+            const nearbyGanazas = [];
+            data.forEach(ganaza => {
+                const marker = L.marker([ganaza.latitude, ganaza.longitude]);
+
+                // Calculate distance from user
+                let distance = null;
+                if (userLat && userLng) {
+                    distance = calculateDistance(userLat, userLng, ganaza.latitude, ganaza.longitude);
+                }
+
+                // Add distance to the popup content
+                marker.bindPopup(`
+                    <h3>${ganaza.mosque_name}</h3>
+                    <p><strong>اسم المتوفى:</strong> ${ganaza.deceased_name}</p>
+                    <p><strong>وقت الصلاة:</strong> ${ganaza.prayer_time}</p>
+                    <p><strong>الوقت:</strong> ${ganaza.time} ${getDateFromString(ganaza.time)}</p>
+                    <p><strong>رسالة:</strong> ${ganaza.message || 'لا توجد رسالة'}</p>
+                    ${distance ? `<p><strong>المسافة:</strong> ${distance.toFixed(2)} كم</p>` : ''}
+                `);
+
+                markers.addLayer(marker); // Add marker to the cluster group
+
+                // Add to nearby ganazas list if within 10 km
+                if (distance && distance <= 10) {
+                    nearbyGanazas.push({ ...ganaza, distance });
+                }
+            });
+
+            map.addLayer(markers); // Add the cluster group to the map
+            document.getElementById('ganaza-count').textContent = data.length; // Update counter
+
+            // Update nearby ganazas list
+            const nearbyList = document.getElementById('nearby-ganazas-list');
+            nearbyList.innerHTML = '';
+            if (nearbyGanazas.length > 0) {
+                nearbyGanazas.forEach(ganaza => {
+                    const ganazaItem = document.createElement('div');
+                    ganazaItem.innerHTML = `
+                        <strong>${ganaza.mosque_name}</strong><br>
+                        <span>${ganaza.deceased_name}</span><br>
+                        <span>${ganaza.prayer_time} - ${ganaza.time} - ${getDateFromString(ganaza.time)}</span><br>
+                        <span>المسافة: ${ganaza.distance.toFixed(2)} كم</span>
+                    `;
+                    nearbyList.appendChild(ganazaItem);
+                });
+            } else {
+                nearbyList.innerHTML = '<div>لا توجد جنازات قريبة</div>';
+            }
+        })
+        .catch(error => console.error('Error fetching ganazas:', error));
+}
+
+        // Function to periodically update ganazas
+        function startPolling() {
+            setInterval(fetchAllGanazas, 5000); // Fetch data every 5 seconds
+        }
+
+        // Call the function to get the user's location
+        getLocation();
+
+        // Fetch all ganazas when the page loads
+        fetchAllGanazas();
+
+        // Start polling for updates
+        startPolling();
+
+        // Handle the post button click
+        const postButton = document.getElementById('post-button');
+        const postForm = document.getElementById('post-form');
+        const submitButton = document.getElementById('submit-button');
+        const mosqueNameInput = document.getElementById('mosque-name');
+        const mosqueList = document.getElementById('mosque-list');
+
+        postButton.addEventListener('click', () => {
+            postForm.style.display = 'block';
+        });
+
+        function fetchNearbyMosques(lat, lng) {
+    fetch(`/nearby-mosques?lat=${lat}&lng=${lng}`)
+        .then(response => response.json())
+        .then(data => {
+            const mosqueList = document.getElementById('mosque-list');
+            mosqueList.innerHTML = '';
+            if (data.length > 0) {
+                mosqueList.style.display = 'block';
+                data.forEach(mosque => {
+                    const distance = calculateDistance(lat, lng, mosque.latitude, mosque.longitude);
+                    if (distance <= 5) { // Only show mosques within 5 km
+                        const mosqueItem = document.createElement('div');
+                        mosqueItem.textContent = `${mosque.name} - ${mosque.address} (${distance.toFixed(2)} كم)`;
+                        mosqueItem.addEventListener('click', () => {
+                            document.getElementById('mosque-name').value = mosque.name;
+                            mosqueList.style.display = 'none';
+                            map.setView([mosque.latitude, mosque.longitude], 15);
+                            const marker = L.marker([mosque.latitude, mosque.longitude]).addTo(map);
+                            marker.bindPopup(`
+                                <h3>${mosque.name}</h3>
+                                <p>${mosque.address}</p>
+                            `).openPopup();
+                        });
+                        mosqueList.appendChild(mosqueItem);
+                    }
+                });
+            } else {
+                mosqueList.style.display = 'none';
+            }
+        })
+        .catch(error => console.error('Error fetching nearby mosques:', error));
+}
+
+        mosqueNameInput.addEventListener('input', () => {
+    clearTimeout(typingTimer);
+    const query = mosqueNameInput.value.trim().toLowerCase();
+    if (query.length >= 2 && userLat && userLng) {
+        typingTimer = setTimeout(() => {
+            fetch(`/search-mosque?query=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    const mosqueList = document.getElementById('mosque-list');
+                    mosqueList.innerHTML = '';
+                    if (data.length > 0) {
+                        mosqueList.style.display = 'block';
+                        data.forEach(mosque => {
+                            const distance = calculateDistance(userLat, userLng, mosque.latitude, mosque.longitude);
+                            if (distance <= 5) { // Only show mosques within 5 km
+                                const mosqueItem = document.createElement('div');
+                                mosqueItem.textContent = `${mosque.name} - ${mosque.address} (${distance.toFixed(2)} كم)`;
+                                mosqueItem.addEventListener('click', () => {
+                                    mosqueNameInput.value = mosque.name;
+                                    mosqueList.style.display = 'none';
+                                    map.setView([mosque.latitude, mosque.longitude], 15);
+                                    const marker = L.marker([mosque.latitude, mosque.longitude]).addTo(map);
+                                    marker.bindPopup(`
+                                        <h3>${mosque.name}</h3>
+                                        <p>${mosque.address}</p>
+                                    `).openPopup();
+                                });
+                                mosqueList.appendChild(mosqueItem);
+                            }
+                        });
+                    } else {
+                        mosqueList.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error searching for mosques:', error));
+        }, typingDelay);
+    } else {
+        document.getElementById('mosque-list').style.display = 'none';
+    }
+});
+
+        // Handle mosque name input
+        let typingTimer;
+        const typingDelay = 3000;
+
+        mosqueNameInput.addEventListener('input', () => {
+            clearTimeout(typingTimer);
+            const query = mosqueNameInput.value.trim().toLowerCase();
+            if (query.length >= 2) {
+                typingTimer = setTimeout(() => {
+                    fetch(`/search-mosque?query=${query}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            mosqueList.innerHTML = '';
+                            if (data.length > 0) {
+                                mosqueList.style.display = 'block';
+                                data.forEach(mosque => {
+                                    const mosqueItem = document.createElement('div');
+                                    mosqueItem.textContent = `${mosque.name} - ${mosque.address}`;
+                                    mosqueItem.addEventListener('click', () => {
+                                        mosqueNameInput.value = mosque.name;
+                                        mosqueList.style.display = 'none';
+                                        map.setView([mosque.latitude, mosque.longitude], 15);
+                                        const marker = L.marker([mosque.latitude, mosque.longitude]).addTo(map);
+                                        marker.bindPopup(`
+                                            <h3>${mosque.name}</h3>
+                                            <p>${mosque.address}</p>
+                                        `).openPopup();
+                                    });
+                                    mosqueList.appendChild(mosqueItem);
+                                });
+                            } else {
+                                mosqueList.style.display = 'none';
+                            }
+                        })
+                        .catch(error => console.error('Error searching for mosques:', error));
+                }, typingDelay);
+            } else {
+                mosqueList.style.display = 'none';
+            }
+        });
+
+        // Prevent mosque list from disappearing on input focus
+        mosqueNameInput.addEventListener('focus', () => {
+            if (mosqueList.innerHTML.trim() !== '') {
+                mosqueList.style.display = 'block';
+            }
+        });
+
+        // Hide the mosque list if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!mosqueNameInput.contains(event.target) && !mosqueList.contains(event.target)) {
+                mosqueList.style.display = 'none';
+            }
+        });
+
+        // Handle the form submission
+        submitButton.addEventListener('click', () => {
+            const mosqueName = mosqueNameInput.value;
+            const prayerTime = document.getElementById('prayer-time').value;
+            const time = document.getElementById('time').value;
+            const deceasedName = document.getElementById('deceased-name').value;
+            const message = document.getElementById('message').value;
+
+            if (!mosqueName || !prayerTime || !time || !deceasedName) {
+                showAlert('يرجى ملء جميع الحقول المطلوبة.', 'error');
+                return;
+            }
+
+            fetch(`/search-mosque?query=${mosqueName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const mosque = data[0];
+                        const lat = mosque.latitude;
+                        const lng = mosque.longitude;
+
+                        fetch('/post-ganaza', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                mosque_name: mosqueName,
+                                prayer_time: prayerTime,
+                                time: time,
+                                latitude: lat,
+                                longitude: lng,
+                                message: message,
+                                deceased_name: deceasedName,
+                            }),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.message) {
+                                showAlert('تم نشر الجنازة بنجاح!', 'success');
+                                postForm.style.display = 'none';
+                                fetchAllGanazas(); // Refresh the data immediately
+                            }
+                        })
+                        .catch(error => console.error('Error posting ganaza:', error));
+                    } else {
+                        showAlert('لم يتم العثور على مسجد مطابق.', 'error');
+                    }
+                })
+                .catch(error => console.error('Error searching for mosques:', error));
+
+            document.getElementById('mosque-name').value = '';
+            document.getElementById('prayer-time').value = '';
+            document.getElementById('time').value = '';
+            document.getElementById('deceased-name').value = '';
+            document.getElementById('message').value = '';
+            postForm.style.display = 'none';
+        });
+
+        // Handle the cancel button click
+        const cancelButton = document.getElementById('cancel-button');
+        cancelButton.addEventListener('click', () => {
+            document.getElementById('mosque-name').value = '';
+            document.getElementById('prayer-time').value = '';
+            document.getElementById('time').value = '';
+            document.getElementById('deceased-name').value = '';
+            document.getElementById('message').value = '';
+            postForm.style.display = 'none';
+        });
+        // Toggle nearby ganazas list
+        const toggleGanazasBtn = document.getElementById('toggle-ganazas-btn');
+        const nearbyGanazasList = document.getElementById('nearby-ganazas-list');
+
+        toggleGanazasBtn.addEventListener('click', () => {
+            if (nearbyGanazasList.style.display === 'none' || nearbyGanazasList.style.display === '') {
+                nearbyGanazasList.style.display = 'block';
+                toggleGanazasBtn.textContent = 'إخفاء الجنازات القريبة ▲';
+            } else {
+                nearbyGanazasList.style.display = 'none';
+                toggleGanazasBtn.textContent = 'عرض الجنازات القريبة ▼';
+            }
+        });
+
+        function getDateFromString(dateString) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+
+            switch (dateString) {
+                case 'Today':
+                    return formatDate(today); 
+                case 'Tomorrow':
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1); 
+                    return formatDate(tomorrow);
+                case 'Day after tomorrow':
+                    const dayAfterTomorrow = new Date(today);
+                    dayAfterTomorrow.setDate(today.getDate() + 2);
+                    return formatDate(dayAfterTomorrow);
+                default:
+                    const date = new Date(dateString);
+                    date.setHours(0, 0, 0, 0); 
+                    return formatDate(date);
+            }
+}
+
+
+        function formatDate(date) {
+            if (!(date instanceof Date) || isNaN(date)) {
+                return 'تاريخ غير معروف'; // Fallback for invalid dates
+            }
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+
+
+</script>
+</body>
+</html>
