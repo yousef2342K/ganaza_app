@@ -1,11 +1,11 @@
 from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS  # For handling CORS
+from flask_cors import CORS  
 import sqlite3
 import requests
 import logging
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)  #
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -15,7 +15,7 @@ DATABASE = 'ganaza.db'
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row  # Access columns by name
+    conn.row_factory = sqlite3.Row 
     return conn
 
 # Initialize the database
@@ -65,7 +65,7 @@ def search_mosque():
 
     url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&addressdetails=1&limit=10"
     headers = {
-        'User-Agent': 'GanazaMapApp (your-email@example.com)'  # Replace with your app name and email
+        'User-Agent': 'GanazaMapApp (joekhalid2002@gmail.com)'  
     }
 
     try:
@@ -106,7 +106,7 @@ def nearby_mosques():
 
     url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}&format=json&addressdetails=1"
     headers = {
-        'User-Agent': 'GanazaMapApp (your-email@example.com)'  # Replace with your app name and email
+        'User-Agent': 'GanazaMapApp (joekhalid2002@gmail.com)'  
     }
 
     try:
