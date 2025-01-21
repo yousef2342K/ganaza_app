@@ -51,9 +51,10 @@
         /* Post Form */
         #post-form {
             display: none;
-            position: absolute;
-            top: 80px;
-            right: 20px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             z-index: 1000;
             background: white;
             padding: 20px;
@@ -61,6 +62,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 320px;
+            max-width: 90%;
         }
 
         #post-form h3 {
@@ -102,7 +104,7 @@
         }
 
         #post-form textarea {
-            resize: vertical;
+            resize: none;
             min-height: 100px;
         }
 
@@ -150,6 +152,9 @@
             margin-bottom: 15px;
             display: none;
             background-color: #f9f9f9;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
         }
 
         #mosque-list div {
@@ -157,10 +162,22 @@
             cursor: pointer;
             transition: background 0.3s ease;
             font-size: 14px;
+            border-bottom: 1px solid #eee;
         }
 
         #mosque-list div:hover {
             background: #f0f0f0;
+        }
+
+        #mosque-list div:last-child {
+            border-bottom: none;
+        }
+
+        #mosque-list .no-results {
+            padding: 10px;
+            color: #888;
+            text-align: center;
+            font-style: italic;
         }
 
         /* Custom Alert Box */
@@ -244,8 +261,8 @@
         /* Nearby Ganazas Dropdown */
         #nearby-ganazas-dropdown {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 30px;
+            left:30px;
             z-index: 1000;
             font-family: 'Tajawal', sans-serif;
         }
@@ -343,6 +360,7 @@
         <div id="mosque-list"></div>
         <label for="prayer-time">وقت الصلاة:</label>
         <select id="prayer-time" required>
+            <option value="" selected hidden></option>
             <option value="Fajr">الفجر</option>
             <option value="Dhuhr">الظهر</option>
             <option value="Asr">العصر</option>
@@ -351,6 +369,7 @@
         </select>
         <label for="time">الوقت:</label>
         <select id="time" required>
+            <option value="" selected hidden></option>
             <option value="Today">اليوم <span id="today-date"></span></option>
             <option value="Tomorrow">غدًا <span id="tomorrow-date"></span></option>
             <option value="Day after tomorrow">بعد غد <span id="day-after-tomorrow-date"></span></option>
@@ -577,7 +596,7 @@
                         mosqueList.style.display = 'block';
                         data.forEach(mosque => {
                             const distance = calculateDistance(lat, lng, mosque.latitude, mosque.longitude);
-                            if (distance <= 5) { // Only show mosques within 5 km
+                            if (distance <= 10) { // عرض المساجد ضمن نطاق 10 كم
                                 const mosqueItem = document.createElement('div');
                                 mosqueItem.textContent = `${mosque.name} - ${mosque.address} (${distance.toFixed(2)} كم)`;
                                 mosqueItem.addEventListener('click', () => {
@@ -593,36 +612,43 @@
                                 mosqueList.appendChild(mosqueItem);
                             }
                         });
+                        if (mosqueList.children.length === 0) {
+                            mosqueList.innerHTML = '<div class="no-results">لا توجد مساجد ضمن النطاق المحدد.</div>';
+                        }
                     } else {
-                        mosqueList.style.display = 'none';
+                        mosqueList.innerHTML = '<div class="no-results">لا توجد مساجد قريبة.</div>';
                     }
                 })
-                .catch(error => console.error('Error fetching nearby mosques:', error));
+                .catch(error => {
+                    console.error('Error fetching nearby mosques:', error);
+                    mosqueList.innerHTML = '<div class="no-results">حدث خطأ أثناء جلب البيانات.</div>';
+                });
         }
 
         // Handle mosque name input
         let typingTimer;
-        const typingDelay = 3000;
+        const typingDelay = 1000;
 
         mosqueNameInput.addEventListener('input', () => {
             clearTimeout(typingTimer);
             const query = mosqueNameInput.value.trim().toLowerCase();
-            if (query.length >= 2 && userLat && userLng) {
+            if (query.length >= 1 && userLat && userLng) {
+                mosqueList.innerHTML = '<div class="no-results">جاري البحث...</div>';
+                mosqueList.style.display = 'block';
+
                 typingTimer = setTimeout(() => {
                     fetch(`/search-mosque?query=${query}`)
                         .then(response => response.json())
                         .then(data => {
-                            const mosqueList = document.getElementById('mosque-list');
-                            mosqueList.innerHTML = '';
+                            mosqueList.innerHTML = ''; 
                             if (data.length > 0) {
-                                mosqueList.style.display = 'block';
                                 data.forEach(mosque => {
                                     const distance = calculateDistance(userLat, userLng, mosque.latitude, mosque.longitude);
-                                    if (distance <= 5) { // Only show mosques within 5 km
+                                    if (distance <= 10) { 
                                         const mosqueItem = document.createElement('div');
                                         mosqueItem.textContent = `${mosque.name} - ${mosque.address} (${distance.toFixed(2)} كم)`;
                                         mosqueItem.addEventListener('click', () => {
-                                            mosqueNameInput.value = mosque.name;
+                                            document.getElementById('mosque-name').value = mosque.name;
                                             mosqueList.style.display = 'none';
                                             map.setView([mosque.latitude, mosque.longitude], 15);
                                             const marker = L.marker([mosque.latitude, mosque.longitude]).addTo(map);
@@ -634,14 +660,20 @@
                                         mosqueList.appendChild(mosqueItem);
                                     }
                                 });
+                                if (mosqueList.children.length === 0) {
+                                    mosqueList.innerHTML = '<div class="no-results">لا توجد نتائج ضمن النطاق المحدد.</div>';
+                                }
                             } else {
-                                mosqueList.style.display = 'none';
+                                mosqueList.innerHTML = '<div class="no-results">لا توجد نتائج.</div>';
                             }
                         })
-                        .catch(error => console.error('Error searching for mosques:', error));
+                        .catch(error => {
+                            console.error('Error searching for mosques:', error);
+                            mosqueList.innerHTML = '<div class="no-results">حدث خطأ أثناء البحث.</div>';
+                        });
                 }, typingDelay);
             } else {
-                document.getElementById('mosque-list').style.display = 'none';
+                mosqueList.style.display = 'none';
             }
         });
 
@@ -716,12 +748,25 @@
         // Handle the cancel button click
         const cancelButton = document.getElementById('cancel-button');
         cancelButton.addEventListener('click', () => {
+            // Hide the mosque list
+            mosqueList.style.display = 'none';
+
+            // Clear form fields
             document.getElementById('mosque-name').value = '';
             document.getElementById('prayer-time').value = '';
             document.getElementById('time').value = '';
             document.getElementById('deceased-name').value = '';
             document.getElementById('message').value = '';
+
+            // Hide the form
             postForm.style.display = 'none';
+
+            // Cancel any ongoing search request
+            if (abortController) {
+                abortController.abort(); // Cancel the ongoing fetch request
+                abortController = null; // Reset the AbortController
+            }
+
         });
 
         // Toggle nearby ganazas list
